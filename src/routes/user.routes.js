@@ -18,6 +18,7 @@ router.post("/profile", profileController.create);
 router.post("/forgot-password", userController.forgotPassword);
 router.post("/set-password", userController.setPassword);
 router.get("/countries", userController.getZipCountries);
+router.get("/states", userController.getStats);
 router.get("/search-user", profileController.getUsersByUsername);
 router.get("/:id", userController.findById);
 router.get("/profile/:id", profileController.FindProfieById);

@@ -5,9 +5,20 @@ const { getPagination, getCount, getPaginationData } = require("../helpers/fn");
 
 // Admin Api //
 exports.findAllCommunity = async function (req, res) {
+  const { selectedCard, selectedCountry, selectedState, selectedAreas } = req.body;
+  console.log(req.body);
+  const searchData = await Community.findAllCommunity(
+    selectedCard,
+    selectedCountry,
+    selectedState,
+    selectedAreas
+  );
+  return res.send(searchData);
+};
+exports.getCommunities = async function (req, res) {
   const { page, size, search, pageType, startDate, endDate } = req.body;
   const { limit, offset } = getPagination(page, size);
-  const searchData = await Community.findAllCommunity(
+  const searchData = await Community.getCommunities(
     limit,
     offset,
     search,
@@ -47,10 +58,17 @@ exports.createCommunity = async function (req, res) {
   } else {
     const communityData = new Community(req.body);
     console.log(communityData);
-    Community.create(communityData, function (err, community) {
+    Community.create(communityData, async function (err, community) {
       if (err) {
         return utils.send500(res, err);
       } else {
+        if (community) {
+          const emphasisData = req.body.emphasis;
+          const areasData = req.body.areas;
+          const emphasis = await Community.addEmphasis(community, emphasisData);
+          const areas = await Community.addAreas(community, areasData);
+          console.log(emphasis, areas);
+        }
         return res.json({
           error: false,
           message: "Your community will be approve by admin",
@@ -60,50 +78,6 @@ exports.createCommunity = async function (req, res) {
     });
   }
 };
-exports.CreateAdvertizementLink = async function (req, res) {
-  if (Object.keys(req.body).length === 0) {
-    res.status(400).send({ error: true, message: "Error in application" });
-  } else {
-    const communityLinkData = req.body;
-    console.log(communityLinkData);
-    Community.CreateAdvertizementLink(
-      communityLinkData,
-      function (err, community) {
-        if (err) {
-          return utils.send500(res, err);
-        } else {
-          return res.json({
-            error: false,
-            message: "Your community will be approve by admin",
-            data: community,
-          });
-        }
-      }
-    );
-  }
-};
-
-exports.editAdvertizeMentLink = async function (req, res) {
-  if (Object.keys(req.body).length === 0) {
-    res.status(400).send({ error: true, message: "Error in application" });
-  } else {
-    const communityLinkData = req.body;
-    console.log(communityLinkData);
-    const data = await Community.editAdvertizeMentLink(communityLinkData);
-    if (data) {
-      res.json({
-        error: false,
-        message: "link update successfully",
-      });
-    } else {
-      res.status(500).json({
-        error: true,
-        message: "something went wrong!!",
-      });
-    }
-  }
-};
-
 exports.editCommunity = async function name(req, res) {
   const Id = req.params.id;
   const communityData = new Community(req.body);
@@ -170,17 +144,6 @@ exports.changeAccountType = function (req, res) {
   }
 };
 
-exports.getLink = function (req, res) {
-  if (req.params.id) {
-    Community.getLink(req.params.id, function (err, data) {
-      if (err) return utils.send500(res, err);
-      res.json({
-        error: false,
-        data: data,
-      });
-    });
-  }
-};
 exports.deleteCommunity = function (req, res) {
   if (req.params.id) {
     Community.deleteCommunity(req.params.id, function (err, result) {
@@ -345,5 +308,15 @@ exports.getJoinedCommunityByProfileId = async function (req, res) {
       error: false,
       data: communityList,
     });
+  }
+};
+
+exports.getEmphasisAndArea = async function (req, res) {
+  const data = await Community.getEmphasisAndArea();
+  console.log(data);
+  if (data) {
+    res.json(data);
+  } else {
+    res.status(404).send({ message: "not found!" });
   }
 };

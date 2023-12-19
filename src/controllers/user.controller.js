@@ -410,7 +410,7 @@ exports.getZipData = function (req, res) {
       res.send({
         error: true,
         message:
-          "If Your postal code is not found in our database, Please enter a postal code nearest to you",
+          "If Your postal code is not found in our database, Please enter a postal code nearest to you.",
       });
     }
   });
@@ -424,7 +424,7 @@ exports.getZipCountries = function (req, res) {
 };
 
 exports.verification = function (req, res) {
-  User.verification(req.params.token, function (err, data) {
+  User.verification(req.params.token, async function (err, data) {
     if (err) {
       if (err?.name === "TokenExpiredError" && data?.userId) {
         return res.redirect(
@@ -439,7 +439,12 @@ exports.verification = function (req, res) {
     // if (data.IsAdmin === "Y") {
     //   return res.redirect(`${environments.ADMIN_URL}/auth/partner-login`);
     // }
-    return res.redirect(`${environments.FRONTEND_URL}/login?isVerify=true`);
+
+    const token = await generateJwtToken(data);
+    console.log(token);
+    return res.redirect(
+      `${environments.FRONTEND_URL}/healing-registration?token=${token}`
+    );
   });
 };
 
@@ -477,4 +482,17 @@ exports.logout = function (req, res) {
   //   domain: environments.domain,
   // });
   res.end();
+};
+
+exports.getStats = async function (req, res) {
+  console.log("innn");
+  const countryCode = req?.query?.countryCode;
+  if (countryCode) {
+    const states = await User.getStats(countryCode);
+    if (states) {
+      res.json(states);
+    } else {
+      res.status(404).send({ message: "not found" });
+    }
+  }
 };
