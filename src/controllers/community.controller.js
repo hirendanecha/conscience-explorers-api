@@ -71,7 +71,7 @@ exports.createCommunity = async function (req, res) {
         }
         return res.json({
           error: false,
-          message: "Your community will be approve by admin",
+          message: "Your Visionaries will be approve by admin",
           data: community,
         });
       }
@@ -86,7 +86,7 @@ exports.editCommunity = async function name(req, res) {
   if (community) {
     return res.json({
       error: false,
-      message: "update community successfully",
+      message: "update Visionaries successfully",
     });
   } else {
     res.status(500).send({
@@ -113,12 +113,12 @@ exports.approveCommunity = function (req, res) {
         if (isApprove === "Y") {
           res.json({
             error: false,
-            message: "Community approved successfully",
+            message: "Visionaries approved successfully",
           });
         } else {
           res.json({
             error: false,
-            message: "Community unapproved successfully",
+            message: "Visionaries unapproved successfully",
           });
         }
       }
@@ -175,7 +175,7 @@ exports.findCommunityById = async function (req, res) {
     } else {
       res.status(400).send({
         error: true,
-        message: "Community not found",
+        message: "Visionaries not found",
       });
     }
   }
@@ -189,7 +189,7 @@ exports.findCommunityBySlug = async function (req, res) {
     } else {
       res.status(400).send({
         error: true,
-        message: "Community not found",
+        message: "Visionaries not found",
       });
     }
   } else {

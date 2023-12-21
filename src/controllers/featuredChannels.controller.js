@@ -44,7 +44,7 @@ exports.findChannelById = async function (req, res) {
     } else {
       res.status(400).send({
         error: true,
-        message: "Community not found",
+        message: "Visionaries not found",
       });
     }
   }

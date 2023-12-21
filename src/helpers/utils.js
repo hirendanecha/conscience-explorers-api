@@ -95,7 +95,7 @@ exports.notificationMail = async (userData) => {
 
   const mailObj = {
     email: userData.email,
-    subject: "Freedom notification",
+    subject: "Conscience Explore notification",
     root: "../email-templates/notification.ejs",
     templateData: { name: name, msg: msg, url: redirectUrl },
   };
@@ -111,7 +111,7 @@ exports.channelNotificationEmail = async (userData) => {
 
   const mailObj = {
     email: userData.Email,
-    subject: "Freedom notification",
+    subject: "Conscience Explore",
     root: "../email-templates/notification.ejs",
     templateData: { name: name, msg: msg, url: redirectUrl },
   };
@@ -131,14 +131,14 @@ exports.communityApproveEmail = async (profileId, isApprove) => {
       userData[0]?.FirstName + " " + userData[0]?.LastName;
     let msg = "";
     if (isApprove === "Y") {
-      msg = `Your community has been aprroved by Master Admin.`;
+      msg = `Your Visionaries has been aprroved by Master Admin.`;
     } else {
-      msg = `Your community has been upaprroved by Master Admin.`;
+      msg = `Your Visionaries has been upaprroved by Master Admin.`;
     }
     let redirectUrl = `${environment.FRONTEND_URL}`;
     const mailObj = {
       email: userData[0].Email,
-      subject: "Freedom notification",
+      subject: "Conscience Explore",
       root: "../email-templates/notification.ejs",
       templateData: { name: name, msg: msg, url: redirectUrl },
     };
