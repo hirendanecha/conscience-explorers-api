@@ -101,7 +101,7 @@ Profile.FindById = async function (profileId) {
   console.log("profile===>", profile);
   const query1 =
     "select c.channelId from channelAdmins as c left join profile as p on p.ID = c.profileId where c.profileId = p.ID and p.UserID = ?;";
-  const value1 = [profile[0].UserID];
+  const value1 = [profile[0].Id];
   const channelId = await executeQuery(query1, value1);
   profile[0].channelId = channelId[0]?.channelId;
   return profile;
