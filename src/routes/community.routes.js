@@ -11,6 +11,14 @@ router.get(
 );
 router.post("/get-communities", communityController.findAllCommunity);
 router.post("/all-community", communityController.getCommunities);
+router.post(
+  "/create-advertizement-link",
+  communityController.CreateAdvertizementLink
+);
+router.post(
+  "/edit-advertizement-link",
+  communityController.editAdvertizeMentLink
+);
 // router.get("/un-approve-community", communityController.findUnApproveCommunity);
 router.get("/search", communityController.search);
 router.get("/:id", communityController.findCommunityById);
@@ -20,6 +28,7 @@ router.get(
   "/joined-community/:id",
   communityController.getJoinedCommunityByProfileId
 );
+router.get("/get-link/:id", communityController.getLink);
 router.get("/status/:id", communityController.approveCommunity);
 router.get("/change-user-type/:id", communityController.changeAccountType);
 router.get("/files/:folder/:id", utilsController.getFiles);
