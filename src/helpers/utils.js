@@ -113,7 +113,7 @@ exports.channelNotificationEmail = async (userData) => {
 
   const mailObj = {
     email: userData.Email,
-    subject: "Conscience Explore",
+    subject: "Conscience Explore notification",
     root: "../email-templates/notification.ejs",
     templateData: { name: name, msg: msg, url: redirectUrl },
   };
@@ -140,7 +140,7 @@ exports.communityApproveEmail = async (profileId, isApprove) => {
     let redirectUrl = `${environment.FRONTEND_URL}`;
     const mailObj = {
       email: userData[0].Email,
-      subject: "Conscience Explore",
+      subject: "Conscience Explore notification",
       root: "../email-templates/notification.ejs",
       templateData: { name: name, msg: msg, url: redirectUrl },
     };

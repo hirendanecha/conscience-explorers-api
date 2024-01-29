@@ -443,7 +443,7 @@ exports.verification = function (req, res) {
     const token = await generateJwtToken(data);
     console.log(token);
     return res.redirect(
-      `${environments.FRONTEND_URL}/healing-registration?token=${token}`
+      `${environments.FRONTEND_URL}/conscience-registration?token=${token}`
     );
   });
 };
@@ -475,12 +475,6 @@ exports.logout = function (req, res) {
     secure: true,
     domain: environments.domain,
   });
-  // res.cookie("auth-user", 'Hello', {
-  //   expire: new Date(Date.now() - 900000),
-  //   secure: true,
-  //   sameSite: "none",
-  //   domain: environments.domain,
-  // });
   res.end();
 };
 
