@@ -37,7 +37,7 @@ exports.getactualfilename = (fname, folder, id) => {
 exports.registrationMail = async (userData, userId) => {
   let jwtSecretKey = environment.JWT_SECRET_KEY;
   let name = userData?.Username || userData.FirstName + " " + userData.LastName;
-
+  console.log("userData", userData);
   const token = jwt.sign(
     {
       userId: userId,
@@ -99,6 +99,7 @@ exports.notificationMail = async (userData) => {
     root: "../email-templates/notification.ejs",
     templateData: { name: name, msg: msg, url: redirectUrl },
   };
+  console.log(mailObj);
 
   await email.sendMail(mailObj);
   return;
