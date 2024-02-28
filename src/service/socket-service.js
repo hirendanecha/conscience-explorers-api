@@ -452,7 +452,7 @@ const createComments = async function (params) {
               firstName: userData[0].FirstName,
               senderUsername: senderData[0].Username,
               type: "comment",
-              postId: notification?.postId || postData?.id,
+              postId: notification?.postId || data.postId,
             };
             await notificationMail(userDetails);
           }
