@@ -3,6 +3,9 @@ const socket = {};
 const { post, param } = require("../routes");
 const socketService = require("../service/socket-service");
 
+const environment = require("../environments/environment");
+const jwt = require("jsonwebtoken");
+
 socket.config = (server) => {
   const io = require("socket.io")(server, {
     transports: ["websocket", "polling"],
@@ -13,6 +16,29 @@ socket.config = (server) => {
   socket.io = io;
   console.log("io");
 
+  io.use((socket, next) => {
+    try {
+      const token = socket.handshake.auth?.Authorization.split(" ")[1];
+      if (!token) {
+        const err = new Error("Unauthorized Access");
+        return next(err);
+      }
+      let decoded = jwt.decode(token);
+      jwt.verify(token, environment.JWT_SECRET_KEY, async (err, user) => {
+        if (err) {
+          const err = new Error("Invalid or Expired Token");
+          return next(err);
+        }
+        socket.user = decoded.user;
+        // Function to join existing rooms
+        socket.join(`${socket.user?.id}`);
+        next();
+      });
+    } catch (error) {
+      const err = new Error("Invalid or Expired Token");
+      return next(err);
+    }
+  });
   io.sockets.on("connection", (socket) => {
     let address = socket.request.connection.remoteAddress;
 

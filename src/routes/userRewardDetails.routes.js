@@ -3,6 +3,8 @@ const router = express.Router();
 
 const userRewardDetailsController = require("../controllers/userRewardDetails.controller");
 
-router.get("/getCountByProfileId/:profileId", userRewardDetailsController.getCountByProfileId);
+const authorize = require("../middleware/authorize");
+
+router.get("/getCountByProfileId/:profileId",authorize.authorization, userRewardDetailsController.getCountByProfileId);
 
 module.exports = router;
