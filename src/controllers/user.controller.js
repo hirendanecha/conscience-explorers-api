@@ -342,7 +342,6 @@ exports.delete = function (req, res) {
   const profileId = req.query.profileId;
   console.log(userId, profileId);
   if (req.query.profileId === req.user.id) {
-
     const isDeleted = User.delete(userId, profileId);
     if (isDeleted) {
       res.json({ error: false, message: "User deleted successfully" });
@@ -434,7 +433,8 @@ exports.verification = function (req, res) {
     if (err) {
       if (err?.name === "TokenExpiredError" && data?.userId) {
         return res.redirect(
-          `${environments.FRONTEND_URL
+          `${
+            environments.FRONTEND_URL
           }/user/verification-expired?user=${encodeURIComponent(data.email)}`
         );
       }
@@ -446,6 +446,12 @@ exports.verification = function (req, res) {
     // }
 
     const token = await generateJwtToken(data);
+    res.cookie("auth-user", token, {
+      // expire: new Date(Date.now() + 900000),
+      secure: true,
+      sameSite: "none",
+      domain: environments.domain,
+    });
     console.log(token);
     return res.redirect(
       `${environments.FRONTEND_URL}/conscience-registration?token=${token}`
