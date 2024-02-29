@@ -72,31 +72,34 @@ exports.updateProfile = async function (req, res) {
         .status(400)
         .json({ error: true, message: "Username is already exist" });
     }
+    if (req.body.Id === req.user.id) {
+      if (req.body.UserID) {
+        const updateUserData = {
+          Username: reqBody?.Username,
+          FirstName: reqBody?.FirstName,
+          LastName: reqBody?.LastName,
+          Address: reqBody?.Address,
+          Zip: reqBody?.Zip,
+          City: reqBody?.City,
+          State: reqBody?.State,
+          Country: reqBody?.Country,
+        };
 
-    if (req.body.Id) {
-      const updateUserData = {
-        Username: reqBody?.Username,
-        FirstName: reqBody?.FirstName,
-        LastName: reqBody?.LastName,
-        Address: reqBody?.Address,
-        Zip: reqBody?.Zip,
-        City: reqBody?.City,
-        State: reqBody?.State,
-        Country: reqBody?.Country,
-      };
+        User.update(req.body.UserID, updateUserData, (err, result) => {
+          if (err) return utils.send500(res, err);
+        });
+      }
 
-      User.update(req.body.Id, updateUserData, (err, result) => {
+      Profile.update(profileId, profile, async function (err, profile) {
         if (err) return utils.send500(res, err);
+        return res.json({
+          error: false,
+          message: "Profile update successfully",
+        });
       });
+    } else {
+      return res.status(401).json({ message: "Unauthorized token" });
     }
-
-    Profile.update(profileId, profile, async function (err, profile) {
-      if (err) return utils.send500(res, err);
-      return res.json({
-        error: false,
-        message: "Profile update successfully",
-      });
-    });
   }
 };
 

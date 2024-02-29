@@ -4,6 +4,7 @@ const User = require("../models/user.model");
 const utils = require("../helpers/utils");
 const environments = require("../environments/environment");
 const jwt = require("jsonwebtoken");
+const authorize = require("../middleware/authorize");
 
 const { getPagination, getCount, getPaginationData } = require("../helpers/fn");
 const { Encrypt } = require("../helpers/cryptography");
@@ -340,9 +341,14 @@ exports.delete = function (req, res) {
   const userId = req.params.id;
   const profileId = req.query.profileId;
   console.log(userId, profileId);
-  const isDeleted = User.delete(userId, profileId);
-  if (isDeleted) {
-    res.json({ error: false, message: "User deleted successfully" });
+  if (req.query.profileId === req.user.id) {
+
+    const isDeleted = User.delete(userId, profileId);
+    if (isDeleted) {
+      res.json({ error: false, message: "User deleted successfully" });
+    }
+  } else {
+    return res.status(401).json({ message: "Unauthorized token" });
   }
 };
 
@@ -428,8 +434,7 @@ exports.verification = function (req, res) {
     if (err) {
       if (err?.name === "TokenExpiredError" && data?.userId) {
         return res.redirect(
-          `${
-            environments.FRONTEND_URL
+          `${environments.FRONTEND_URL
           }/user/verification-expired?user=${encodeURIComponent(data.email)}`
         );
       }
@@ -469,13 +474,15 @@ exports.resendVerification = function (req, res) {
 };
 
 exports.logout = function (req, res) {
-  console.log("cookies");
+  console.log("innn==>");
+  const token = req.headers.authorization.split(" ")[1];
+  authorize.setTokenInList(token);
   res.clearCookie("auth-user", {
     sameSite: "none",
     secure: true,
     domain: environments.domain,
   });
-  res.end();
+  return res.status(200).json({ message: "logout successfully" });
 };
 
 exports.getStats = async function (req, res) {
