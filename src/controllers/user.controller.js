@@ -342,7 +342,6 @@ exports.delete = function (req, res) {
   const profileId = req.query.profileId;
   console.log(userId, profileId);
   if (req.query.profileId === req.user.id) {
-
     const isDeleted = User.delete(userId, profileId);
     if (isDeleted) {
       res.json({ error: false, message: "User deleted successfully" });
@@ -434,7 +433,8 @@ exports.verification = function (req, res) {
     if (err) {
       if (err?.name === "TokenExpiredError" && data?.userId) {
         return res.redirect(
-          `${environments.FRONTEND_URL
+          `${
+            environments.FRONTEND_URL
           }/user/verification-expired?user=${encodeURIComponent(data.email)}`
         );
       }
@@ -495,5 +495,23 @@ exports.getStats = async function (req, res) {
     } else {
       res.status(404).send({ message: "not found" });
     }
+  }
+};
+
+exports.verifyToken = async function (req, res) {
+  try {
+    const token = req.params.token;
+    const decoded = jwt.verify(token, environments.JWT_SECRET_KEY);
+    console.log(decoded.user);
+    if (decoded.user) {
+      res.status(200).send({ message: "Authorized User", verifiedToken: true });
+    } else {
+      res
+        .status(401)
+        .json({ message: "Unauthorized User", verifiedToken: false });
+    }
+    next();
+  } catch (err) {
+    res.status(401).json({ message: "not valid token" });
   }
 };
