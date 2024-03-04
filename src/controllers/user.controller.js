@@ -506,9 +506,9 @@ exports.verifyToken = async function (req, res) {
     } else {
       res
         .status(401)
-        .json({ message: "Unauthorized User", verifiedToken: false });
+        .json({ message: "Unauthorized Token", verifiedToken: false });
     }
   } catch (err) {
-    res.status(401).json({ message: "not valid token" });
+    res.status(401).json({ message: "Invalid token", verifiedToken: false });
   }
 };
