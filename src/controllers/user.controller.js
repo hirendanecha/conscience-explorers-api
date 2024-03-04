@@ -502,9 +502,16 @@ exports.verifyToken = async function (req, res) {
   try {
     const token = req.params.token;
     const decoded = jwt.verify(token, environments.JWT_SECRET_KEY);
-    console.log(decoded.user);
+    let verifyToken;
     if (decoded.user) {
-      res.status(200).send({ message: "Authorized User", verifiedToken: true });
+      verifyToken=true;
+      if(verifyToken){
+        res.status(200).send({ message: "Authorized User", verifiedToken: true });
+      }else{
+         res
+           .status(401)
+           .json({ message: "Not Valid User", verifiedToken: false });
+      }
     } else {
       res
         .status(401)
