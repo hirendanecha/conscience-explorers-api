@@ -11,6 +11,7 @@ router.get("/countries", userController.getZipCountries);
 router.get("/zip/:zip", userController.getZipData);
 router.get("/profile/:id", profileController.FindProfieById);
 router.post("/login", userController.adminLogin);
+router.get("/verify-token/:token", userController.verifyToken);
 router.use(authorize.authorization);
 router.post("/", userController.findAll);
 router.get("/get", userController.getAll);
