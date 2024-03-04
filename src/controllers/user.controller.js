@@ -444,7 +444,6 @@ exports.verification = function (req, res) {
     // if (data.IsAdmin === "Y") {
     //   return res.redirect(`${environments.ADMIN_URL}/auth/partner-login`);
     // }
-
     const token = await generateJwtToken(data);
     console.log(token);
     return res.redirect(
