@@ -35,7 +35,6 @@ exports.getactualfilename = (fname, folder, id) => {
 };
 
 exports.registrationMail = async (userData, userId) => {
-  let jwtSecretKey = environment.JWT_SECRET_KEY;
   let name = userData?.Username || userData.FirstName + " " + userData.LastName;
   console.log("userData", userData);
   const token = jwt.sign(
@@ -43,7 +42,7 @@ exports.registrationMail = async (userData, userId) => {
       userId: userId,
       email: userData.Email,
     },
-    jwtSecretKey,
+    environment.JWT_SECRET_KEY,
     { expiresIn: "730 days" }
   );
 
