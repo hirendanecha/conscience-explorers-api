@@ -16,7 +16,7 @@ const dashboardRouter = require("./dashboard.routes");
 const featuredChannels = require("./featured-channels.routes");
 const userRealityRouter = require("./userReality.routes");
 const advertizementRouter = require("./advertizment.routes");
-
+const messageRouter = require("./message.routes");
 
 router.use("/login", authRoutes);
 router.use("/customers", userRoutes);
@@ -34,4 +34,5 @@ router.use("/dashboard", dashboardRouter);
 router.use("/channels", featuredChannels);
 router.use("/reality", userRealityRouter);
 router.use("/advertizement", advertizementRouter);
+router.use("/messages", messageRouter);
 module.exports = router;
