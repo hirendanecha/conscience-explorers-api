@@ -61,10 +61,10 @@ app.use(cookieParser())
 
 app.use("/uploads", express.static(__dirname + "/uploads"));
 
-app.get("/", (req, res) => {
-  // res.writeHead(200);
-  // res.send("HT API Server");
-});
+// app.get("/", (req, res) => {
+//   // res.writeHead(200);
+//   // res.send("HT API Server");
+// });
 
 try {
   // Initiate the API //
