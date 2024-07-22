@@ -1,9 +1,7 @@
 let logger = console;
 const socket = {};
-const { post, param } = require("../routes");
 const socketService = require("../service/socket-service");
 const chatService = require("../service/chat-service");
-
 const environment = require("../environments/environment");
 const jwt = require("jsonwebtoken");
 
@@ -15,7 +13,7 @@ socket.config = (server) => {
     },
   });
   socket.io = io;
-  console.log("io");
+  let onlineUsers = [];
 
   io.use((socket, next) => {
     try {
@@ -51,6 +49,7 @@ socket.config = (server) => {
       return next(err);
     }
   });
+
   io.sockets.on("connection", (socket) => {
     let address = socket.request.connection.remoteAddress;
 
@@ -79,12 +78,45 @@ socket.config = (server) => {
         method: "join",
       });
     });
+    socket.on("online-users", async (cb) => {
+      logger.info("online user", {
+        id: socket.id,
+        method: "online",
+        type: typeof cb,
+      });
+      const newUserId = socket.user.id;
+      if (!onlineUsers.some((user) => user.userId === newUserId)) {
+        const status = await chatService.userStatus(newUserId);
+        console.log("userStatus", status);
+        if (status) {
+          onlineUsers.push({
+            userId: newUserId,
+            socketId: socket.id,
+            status: status,
+          });
+        } else {
+          onlineUsers.push({ userId: newUserId, socketId: socket.id });
+        }
+      }
+      io.emit("get-users", onlineUsers);
+      // return cb(onlineUsers);
+    });
+
+    socket.on("offline", () => {
+      // remove user from active users
+      onlineUsers = onlineUsers.filter((user) => user.socketId !== socket.id);
+      // send all online users to all users
+      io.emit("get-users", onlineUsers);
+    });
 
     socket.on("disconnect", () => {
       logger.info("disconnected", {
         id: socket.id,
         method: "disconnect",
       });
+      onlineUsers = onlineUsers.filter((user) => user.socketId !== socket.id);
+      // send all online users to all users
+      io.emit("get-users", onlineUsers);
     });
 
     socket.on("rooms", (params, cb) => {
@@ -103,8 +135,6 @@ socket.config = (server) => {
 
     // socket for post //
     socket.on("get-new-post", async (params) => {
-      console.log(params);
-
       logger.info("New post found", {
         method: "New post found",
         params: params,
@@ -122,30 +152,25 @@ socket.config = (server) => {
       });
       try {
         const data = await socketService.createPost(params);
-        console.log(data);
         if (data?.posts) {
           io.emit("new-post-added", data?.posts);
-
+          console.log({ notifications: data?.notifications });
           if (data?.notifications) {
             for (const key in data?.notifications) {
-              if (Object.hasOwnProperty.call(data?.notifications, key)) {
-                const notification = data?.notifications[key];
-
-                io.to(`${notification.notificationToProfileId}`).emit(
-                  "notification",
-                  notification
-                );
-              }
+              const notification = data?.notifications[key];
+              console.log({ notification });
+              io.to(`${notification.notificationToProfileId}`).emit(
+                "notification",
+                notification
+              );
             }
           }
 
-          const socketData = await socketService.getPost(params);
-          if (typeof cb === "function") cb(socketData);
-          socket.broadcast.emit("new-post", socketData);
+          // const socketData = await socketService.getPost(params);
+          // if (typeof cb === "function") cb(socketData);
+          // socket.broadcast.emit("new-post", socketData);
         }
-      } catch (error) {
-        console.log(error);
-      }
+      } catch (error) {}
     });
 
     // socket for community //
@@ -168,7 +193,6 @@ socket.config = (server) => {
         params: params,
       });
       const post = await socketService.createCommunityPost(params);
-      console.log(post);
       if (post) {
         socket.emit("create-community-post", post);
         const data = await socketService.getCommunityPost(params);
@@ -180,27 +204,21 @@ socket.config = (server) => {
     });
 
     socket.on("get-community-post", async (params) => {
-      console.log(params);
-
       logger.info("New post found", {
         method: "New post found",
         params: params,
       });
       const data = await socketService.getCommunityPost(params);
       if (data) {
-        console.log("posts", data);
         socket.emit("community-post", data);
       }
     });
 
     socket.on("get-new-community", async (params) => {
-      console.log(params);
-
       logger.info("New community found", {
         method: "New community found",
         params: params,
       });
-      console.log(params);
       const communityList = await socketService.getCommunity(params);
       if (communityList) {
         socket.emit("new-community", communityList);
@@ -209,29 +227,23 @@ socket.config = (server) => {
 
     //socket for admin //
     socket.on("get-unApprove-community", async (params) => {
-      console.log(params);
-
       logger.info("New community found", {
         method: "New community found",
         params: params,
       });
       const communityList = await socketService.getUnApproveCommunity(params);
       if (communityList) {
-        console.log(communityList);
         socket.emit("get-unApprove-community", communityList);
       }
     });
 
     socket.on("get-Approve-community", async (params) => {
-      console.log(params);
-
       logger.info("New community found", {
         method: "New community found",
         params: params,
       });
       const communityList = await socketService.getApproveCommunity(params);
       if (communityList) {
-        console.log(communityList);
         socket.emit("get-Approve-community", communityList);
       }
     });
@@ -251,7 +263,6 @@ socket.config = (server) => {
             notificationByProfileId: params.profileId,
             actionType: params.actionType,
           });
-          console.log(notification);
           // notification - emit - to user
           io.to(`${notification.notificationToProfileId}`).emit(
             "notification",
@@ -286,8 +297,6 @@ socket.config = (server) => {
     });
 
     socket.on("send-notification", (params) => {
-      console.log(params);
-
       logger.info("likeOrDislikeNotify", {
         method: "User like on post",
         params: params,
@@ -295,10 +304,8 @@ socket.config = (server) => {
     });
 
     socket.on("comments-on-post", async (params) => {
-      console.log(params);
       const data = await socketService.createComments(params);
       if (data.comments) {
-        console.log("comments-on-post====>", data?.comments);
         io.emit("comments-on-post", data?.comments);
       }
       if (data?.notifications) {
@@ -325,7 +332,6 @@ socket.config = (server) => {
       });
       if (params.actionType) {
         const data = await socketService.likeFeedComment(params);
-        console.log(data.comments);
         socket.broadcast.emit("likeOrDislikeComments", data.comments);
         const notification = await socketService.createNotification({
           notificationToProfileId: params.toProfileId,
@@ -334,7 +340,6 @@ socket.config = (server) => {
           notificationByProfileId: params.profileId,
           actionType: params.actionType,
         });
-        console.log(notification);
         // notification - emit - to user
         io.to(`${notification.notificationToProfileId}`).emit(
           "notification",
@@ -362,11 +367,31 @@ socket.config = (server) => {
         method: "read notification",
         params: params,
       });
-      if (params.profileId) {
-        params["isRead"] = "Y";
-        io.to(`${params.profileId}`).emit("isReadNotification_ack", params);
+      try {
+        if (params.profileId) {
+          await socketService.readNotification(params.profileId);
+          params["isRead"] = "Y";
+          io.to(`${params.profileId}`).emit("isReadNotification_ack", params);
+        }
+      } catch (error) {
+        return error;
       }
     });
+
+    socket.on("get-meta", async (params) => {
+      logger.info("meta", {
+        method: "get Meta",
+        params: params,
+      });
+      if (params.url) {
+        const data = await socketService.getMeta(params);
+        if (data) {
+          socket.emit("get-meta", data);
+          // return data;
+        }
+      }
+    });
+
     // Message Socket //
     socket.on("join-chat-room", async (params) => {
       socket.join(params.room, {
