@@ -200,6 +200,7 @@ const createChatRoom = async function (params) {
         firstName: userData[0].FirstName,
         msg: `${senderData[0].Username} invited you to private chat`,
       };
+
       await notificationMailOnInvite(userDetails);
       const newRoom = await getRoom(room.insertId);
       return { room: newRoom, notification };
@@ -928,7 +929,7 @@ const userStatus = async function (id) {
   try {
     const query = `select userStatus from profile where ID = ${id}`;
     const [status] = await executeQuery(query);
-    return status.userStatus;
+    return status?.userStatus;
   } catch (error) {
     return error;
   }

@@ -466,12 +466,10 @@ socket.config = (server) => {
           if (data?.room) {
             // io.to(`${params.profileId2}`).emit("new-room", data.id);
             if (data?.notification) {
-              if (data?.notification) {
-                io.to(`${data.notification?.notificationToProfileId}`).emit(
-                  "notification",
-                  data?.notification
-                );
-              }
+              io.to(`${data.notification?.notificationToProfileId}`).emit(
+                "notification",
+                data?.notification
+              );
             }
             return cb({ room: data.room });
           } else {
@@ -698,7 +696,7 @@ socket.config = (server) => {
                 );
               }
             } else {
-              console.log("in=========>");
+              console.log("in=========>", data.notification);
               io.to(`${params.roomId}`).emit("new-message", data.newMessage);
               if (data?.notification) {
                 io.to(`${params.roomId}`).emit(
