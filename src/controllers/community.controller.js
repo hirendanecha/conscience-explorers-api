@@ -63,13 +63,13 @@ exports.createCommunity = async function (req, res) {
       if (err) {
         return utils.send500(res, err);
       } else {
-        if (community) {
-          const emphasisData = req.body.emphasis;
-          const areasData = req.body.areas;
-          const emphasis = await Community.addEmphasis(community, emphasisData);
-          const areas = await Community.addAreas(community, areasData);
-          console.log(emphasis, areas);
-        }
+        // if (community) {
+        // const emphasisData = req.body.emphasis;
+        // const areasData = req.body.areas;
+        // const emphasis = await Community.addEmphasis(community, emphasisData);
+        // const areas = await Community.addAreas(community, areasData);
+        // console.log(emphasis, areas);
+        // }
         return res.json({
           error: false,
           message: "Your Visionaries will be approve by admin",
