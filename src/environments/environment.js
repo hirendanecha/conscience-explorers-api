@@ -19,6 +19,7 @@ const environment = {
   DB_PASS: process.env.PASSWORD,
   DB_NAME: process.env.DATABASE,
   DB_USER: process.env.USER,
+  google_api_key: process.env.GOOGLE_API_KEY,
 };
 
 module.exports = environment;
