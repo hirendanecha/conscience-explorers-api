@@ -11,6 +11,7 @@ router.post("/", postController.findAll);
 router.get("/get/:id", postController.getPostByPostId);
 router.post("/comments/", postController.getPostComments);
 router.post("/get-my-post", postController.getPostByProfileId);
+router.post("/get-all-posts", postController.getAllPosts);
 router.post("/get-meta", postController.getMeta);
 router.use(authorize.authorization);
 router.get("/get-pdfs/:id", postController.getPdfsFile);
