@@ -9,6 +9,8 @@ const common = require("../common/common");
 
 const { getPagination, getCount, getPaginationData } = require("../helpers/fn");
 const { Encrypt } = require("../helpers/cryptography");
+const Profile = require("../models/profile.model");
+
 
 exports.login = async function (req, res) {
   console.log("jkfhguysdhfgbdf");
@@ -83,21 +85,24 @@ exports.login = async function (req, res) {
   }
 };
 exports.getToken = async function (req, res) {
-  const data = req?.cookies;
-  console.log(data["auth-user"]);
-  if (data) {
-    const token = data["auth-user"];
+  try {
+    const [user] = await Profile.FindById(req.user.id);
+    console.log("user", user);
 
-    if (token) {
-      return res.json(token);
+    if (user) {
+      if (user.IsSuspended === "Y") {
+        return res.status(401).json({ message: "user suspended", data: {} });
+      }
+      // const data = req?.cookies;
+      // const token = data["auth-user"];
+      return res.json(user);
     } else {
-      return res.status(400).json({ message: "" });
+      return res.status(404).json({ message: "user not found", data: {} });
     }
-  } else {
-    return res.status(400).json({ message: "" });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
   }
 };
-
 exports.create = async function (req, res) {
   // console.log(req.body);
   if (req.body.constructor === Object && Object.keys(req.body).length === 0) {
