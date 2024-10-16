@@ -43,8 +43,7 @@ exports.registrationMail = async (userData, userId) => {
       userId: userId,
       email: userData.Email,
     },
-    environment.JWT_SECRET_KEY,
-    { expiresIn: "15d" }
+    environment.JWT_SECRET_KEY
   );
 
   let registerUrl = `${environment.API_URL}customers/user/verification/${token}`;
@@ -68,8 +67,7 @@ exports.forgotPasswordMail = async (user) => {
       {
         userId: user?.Id,
       },
-      environment.JWT_SECRET_KEY,
-      { expiresIn: "1d" }
+      environment.JWT_SECRET_KEY
     );
 
     let forgotPasswordUrl = `${environment.FRONTEND_URL}reset-password/user?accesstoken=${token}`;
@@ -88,17 +86,22 @@ exports.forgotPasswordMail = async (user) => {
 };
 
 exports.notificationMail = async (userData) => {
-  let name = userData?.userName || userData.fileName;
-  let msg = `You were tagged in ${userData.senderUsername}'s ${userData.type}.`;
-  let redirectUrl = `${environment.FRONTEND_URL}post/${userData.postId}`;
+  let name = userData?.userName || userData.firstName;
+  let msg =
+    userData?.msg ||
+    `You were tagged in ${userData.senderUsername}'s ${userData.type}.`;
+  let redirectUrl = userData.postId
+    ? `${environment.FRONTEND_URL}post/${userData.postId}`
+    : userData?.type === "message"
+    ? `${environment.FRONTEND_URL}profile-chats`
+    : "";
 
   const mailObj = {
     email: userData.email,
-    subject: "Conscience Explore notification",
+    subject: "ChristianTeam notification",
     root: "../email-templates/notification.ejs",
     templateData: { name: name, msg: msg, url: redirectUrl },
   };
-  console.log(mailObj);
 
   await email.sendMail(mailObj);
   return;

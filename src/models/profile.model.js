@@ -1,6 +1,5 @@
 "use strict";
 var db = require("../../config/db.config");
-require("../common/common")();
 const environment = require("../environments/environment");
 const { executeQuery } = require("../helpers/utils");
 
@@ -24,6 +23,11 @@ var Profile = function (profile) {
   this.ProfilePicName = profile.ProfilePicName;
   this.IsActivated = profile.IsActive;
   this.CreatedOn = new Date();
+  this.callNotificationSound = profile.callNotificationSound;
+  this.messageNotificationSound = profile.messageNotificationSound;
+  this.tagNotificationSound = profile.tagNotificationSound;
+  this.messageNotificationEmail = profile.messageNotificationEmail;
+  this.postNotificationEmail = profile.postNotificationEmail;
 };
 
 Profile.create = function (profileData, result) {
@@ -73,37 +77,50 @@ Profile.FindById = async function (profileId) {
   //     }
   //   }
   // );
-  const query = `SELECT ID as profileId,
-    FirstName,
-    LastName,
-    UserID as Id,
-    MobileNo,
-    Gender,
-    DateofBirth,
-    Address,
-    City,
-    State,
-    Zip,
-    Country,
-    Business_NP_TypeID,
-    CoverPicName,
-    IsActivated,
-    Username,
-    ProfilePicName,
-    EmailVerified,
-    CreatedOn,
-    AccountType,
-    MediaApproved,
-    County
-  FROM profile WHERE ID=?`;
+  const query = `
+      SELECT 
+            u.Email,
+            u.Username,
+            u.IsActive,
+            u.DateCreation,
+            u.IsAdmin,
+            u.FirstName,
+            u.LastName,
+            u.Address,
+            u.Country,
+            u.City,
+            u.State,
+            u.Zip,
+            u.IsSuspended,
+            u.AccountType,
+            p.ID as profileId,
+            p.County,
+            p.UserID,
+            p.CoverPicName,
+            p.ProfilePicName,
+            p.MobileNo,
+            p.MediaApproved,
+            p.ChannelType,
+            p.DefaultUniqueLink,
+            p.UniqueLink,
+            p.AccountType,
+            p.userStatus,
+            p.messageNotificationSound,
+            p.callNotificationSound,
+            p.tagNotificationSound,
+            p.messageNotificationEmail,
+            p.postNotificationEmail
+        FROM users as u left join profile as p on p.UserID = u.Id AND p.AccountType in ('I','M') WHERE p.ID=?`;
   const values = profileId;
-  const profile = await executeQuery(query, values);
-  console.log("profile===>", profile);
+  let profile = await executeQuery(query, values);
   const query1 =
     "select c.channelId from channelAdmins as c left join profile as p on p.ID = c.profileId where c.profileId = p.ID and p.UserID = ?;";
-  const value1 = [profile[0].Id];
+  const value1 = [profile[0]?.UserID];
   const channelId = await executeQuery(query1, value1);
-  profile[0].channelId = channelId[0]?.channelId;
+  if (channelId?.length) {
+    profile[0]["channelId"] = channelId[0]?.channelId || null;
+  }
+  console.log("test", profile);
   return profile;
 };
 
@@ -178,6 +195,16 @@ Profile.editNotifications = function (id, isRead, result) {
   );
 };
 
+Profile.editNotificationSound = function (id, key, value) {
+  try {
+    const query = `update profile set ${key} = '${value}' where ID = ${id}`;
+    console.log(query);
+    const data = executeQuery(query);
+    return data;
+  } catch (error) {
+    return error;
+  }
+};
 Profile.deleteNotification = function (user_id, result) {
   db.query(
     "DELETE FROM notifications WHERE Id = ?",

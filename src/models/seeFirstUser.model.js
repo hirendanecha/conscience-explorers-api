@@ -1,5 +1,4 @@
 const { executeQuery } = require("../helpers/utils");
-require("../common/common")();
 
 class SeeFirstUser {
   constructor(data) {

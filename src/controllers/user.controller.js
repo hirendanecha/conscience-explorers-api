@@ -5,6 +5,7 @@ const utils = require("../helpers/utils");
 const environments = require("../environments/environment");
 const jwt = require("jsonwebtoken");
 const authorize = require("../middleware/authorize");
+const common = require("../common/common");
 
 const { getPagination, getCount, getPaginationData } = require("../helpers/fn");
 const { Encrypt } = require("../helpers/cryptography");
@@ -443,7 +444,7 @@ exports.verification = function (req, res) {
     // if (data.IsAdmin === "Y") {
     //   return res.redirect(`${environments.ADMIN_URL}/auth/partner-login`);
     // }
-    const token = await generateJwtToken(data);
+    const token = await common.generateJwtToken(data);
     console.log(token);
     return res.redirect(
       `${environments.FRONTEND_URL}/conscience-registration?token=${token}`

@@ -1,5 +1,6 @@
 const { executeQuery } = require("../helpers/utils");
-require("../common/common")();
+const common = require("../common/common");
+
 
 var UserRewardDetails = function (reward) {
   this.ID = reward.ID;

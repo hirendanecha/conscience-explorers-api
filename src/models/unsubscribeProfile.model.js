@@ -1,6 +1,4 @@
 const { executeQuery } = require("../helpers/utils");
-require("../common/common")();
-
 class UnsubscribeProfile {
   constructor(data) {
     this.profileId = data.profileId;
