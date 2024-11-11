@@ -60,7 +60,7 @@ exports.updateProfile = async function (req, res) {
   if (req.body.constructor === Object && Object.keys(req.body).length === 0) {
     res.status(400).send({ error: true, message: "Error in application" });
   } else {
-    const profileId = req.params.id;
+    const profileId = +req.params.id;
     const reqBody = req.body;
     const profile = new Profile({ ...reqBody });
     const existingUsername = req.user.username;
@@ -72,7 +72,8 @@ exports.updateProfile = async function (req, res) {
         .status(400)
         .json({ error: true, message: "Username is already exist" });
     }
-    if (req.body.Id === req.user.id) {
+
+    if (profileId === req.user.id) {
       if (req.body.UserID) {
         const updateUserData = {
           Username: reqBody?.Username,
@@ -98,7 +99,7 @@ exports.updateProfile = async function (req, res) {
         });
       });
     } else {
-      return res.status(401).json({ message: "Unauthorized token" });
+      return res.status(401).json({ message: "Unauthorized access" });
     }
   }
 };
