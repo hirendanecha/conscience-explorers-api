@@ -4,6 +4,7 @@ const socketService = require("../service/socket-service");
 const chatService = require("../service/chat-service");
 const environment = require("../environments/environment");
 const jwt = require("jsonwebtoken");
+const Profile = require("../models/profile.model");
 
 socket.config = (server) => {
   const io = require("socket.io")(server, {
@@ -29,19 +30,28 @@ socket.config = (server) => {
           return next(err);
         }
         socket.user = decoded.user;
-        // Function to join existing rooms
-        const chatData = await chatService.getRoomsIds(socket.user.id);
-        if (chatData) {
-          for (const roomId of chatData.roomsIds) {
-            const chat = roomId;
-            socket.join(`${chat.roomId}`);
-          }
-          for (const groupId of chatData?.groupsIds) {
-            const chat = groupId;
-            socket.join(`${chat.groupId}`);
+        if (decoded.user.username !== "admin") {
+          const [profile] = await Profile.FindById(decoded.user.id);
+          if (profile?.IsSuspended === "Y") {
+            const err = new Error("user has been suspended");
+            return next(err);
           }
         }
-        socket.join(`${socket.user?.id}`);
+        // Function to join existing rooms
+        if (socket.user.id) {
+          const chatData = await chatService.getRoomsIds(socket.user.id);
+          if (chatData) {
+            for (const roomId of chatData?.roomsIds) {
+              const chat = roomId;
+              socket.join(`${chat.roomId}`);
+            }
+            for (const groupId of chatData?.groupsIds) {
+              const chat = groupId;
+              socket.join(`${chat.groupId}`);
+            }
+          }
+          socket.join(`${socket.user?.id}`);
+        }
         next();
       });
     } catch (error) {
@@ -807,6 +817,11 @@ socket.config = (server) => {
                   "notification",
                   notification
                 );
+              } else {
+                io.to(`${notification?.groupId}`).emit(
+                  "notification",
+                  notification
+                );
               }
             }
           } else {
@@ -1092,7 +1107,7 @@ socket.config = (server) => {
         cb(error);
       }
     });
-    
+
     socket.on("suspend-user", async (params, cb) => {
       logger.info("suspend-user", {
         ...params,

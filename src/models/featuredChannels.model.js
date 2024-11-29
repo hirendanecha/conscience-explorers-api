@@ -141,6 +141,16 @@ featuredChannels.CreateSubAdmin = async function (data, result) {
     result("Already assigned", null);
   }
 };
+
+featuredChannels.createChannelApplication = async function (data) {
+  const query = "insert into channel_application set ?";
+  const values = data;
+  const application = await executeQuery(query, values);
+  if (application) {
+    return application;
+  }
+};
+
 featuredChannels.getPostDetails = async function (id) {
   const query =
     "select p.*,fc.firstname,fc.unique_link,fc.profile_pic_name,fc.created,fc.id as channelId from posts as p left join featured_channels as fc on fc.profileid = p.profileid where p.id = ?";

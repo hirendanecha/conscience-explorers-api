@@ -23,11 +23,11 @@ var Profile = function (profile) {
   this.ProfilePicName = profile.ProfilePicName;
   this.IsActivated = profile.IsActive;
   this.CreatedOn = new Date();
-  this.callNotificationSound = profile.callNotificationSound;
-  this.messageNotificationSound = profile.messageNotificationSound;
-  this.tagNotificationSound = profile.tagNotificationSound;
-  this.messageNotificationEmail = profile.messageNotificationEmail;
-  this.postNotificationEmail = profile.postNotificationEmail;
+  this.callNotificationSound = profile?.callNotificationSound || 'Y';
+  this.messageNotificationSound = profile?.messageNotificationSound || 'Y';
+  this.tagNotificationSound = profile?.tagNotificationSound || 'Y';
+  this.messageNotificationEmail = profile?.messageNotificationEmail || 'Y';
+  this.postNotificationEmail = profile?.postNotificationEmail || 'Y';
 };
 
 Profile.create = function (profileData, result) {
@@ -142,7 +142,7 @@ Profile.update = function (profileId, profileData, result) {
 
 Profile.getUsersByUsername = async function (searchText) {
   if (searchText) {
-    const query = `select p.ID as Id, p.Username,p.ProfilePicName from profile as p left join users as u on u.Id = p.UserID WHERE u.IsAdmin='N' AND u.IsSuspended='N' AND p.Username LIKE ? order by p.Username limit 500`;
+    const query = `select p.ID as Id, p.Username,p.ProfilePicName,p.UserID from profile as p left join users as u on u.Id = p.UserID WHERE u.IsAdmin ='N' AND u.IsSuspended ='N' AND u.IsActive = 'Y' AND p.Username LIKE ? AND p.AccountType in ('I','M') order by p.CreatedOn desc limit 50`;
     const values = [`${searchText}%`];
     const searchData = await executeQuery(query, values);
     return searchData;
@@ -151,14 +151,64 @@ Profile.getUsersByUsername = async function (searchText) {
   }
 };
 
+// Profile.getNotificationById = async function (id, limit, offset) {
+//   if (id) {
+//     const query = `select n.*,p.Username,p.FirstName,p.ProfilePicName from notifications as n left join profile as p on p.ID = n.notificationByProfileId where n.notificationToProfileId = ? order by n.createDate desc limit ${limit} offset ${offset}`;
+//     const values = [id];
+//     const searchCount = await executeQuery(
+//       `SELECT count(id) as count FROM notifications as n WHERE n.notificationToProfileId = ${id}`
+//     );
+//     const notificationData = await executeQuery(query, values);
+//     return {
+//       count: searchCount?.[0]?.count || 0,
+//       data: notificationData,
+//     };
+//   } else {
+//     return { error: "data not found" };
+//   }
+// };
+
 Profile.getNotificationById = async function (id, limit, offset) {
   if (id) {
-    const query = `select n.*,p.Username,p.FirstName,p.ProfilePicName from notifications as n left join profile as p on p.ID = n.notificationByProfileId where n.notificationToProfileId = ? order by n.createDate desc limit ${limit} offset ${offset}`;
-    const values = [id];
-    const searchCount = await executeQuery(
-      `SELECT count(id) as count FROM notifications as n WHERE n.notificationToProfileId = ${id}`
-    );
+    const query = `
+      SELECT n.*, 
+             p.Username, 
+             p.FirstName, 
+             p.ProfilePicName,
+             g.groupName,
+             g.profileImage
+      FROM notifications AS n
+      LEFT JOIN profile AS p 
+        ON p.ID = n.notificationByProfileId
+      LEFT JOIN chatGroups AS g 
+        ON g.id = n.groupId
+      LEFT JOIN groupMembers AS gm 
+        ON gm.groupId = n.groupId 
+           AND gm.profileId = ?
+      WHERE gm.profileId != n.notificationByProfileId AND gm.profileId = ? 
+         OR n.notificationToProfileId = ?
+      GROUP BY n.id
+      ORDER BY n.createDate DESC
+      LIMIT ? OFFSET ?`;
+
+    const values = [id, id, id, limit, offset];
+
+    // Fetch notification count
+    const searchCountQuery = `
+      SELECT COUNT(DISTINCT n.id) AS count 
+      FROM notifications AS n
+      LEFT JOIN groupMembers AS g 
+        ON g.groupId = n.groupId 
+           AND g.profileId = ?
+      WHERE g.profileId = ? 
+         OR n.notificationToProfileId = ?`;
+    const searchCountValues = [id, id, id];
+
+    const searchCount = await executeQuery(searchCountQuery, searchCountValues);
     const notificationData = await executeQuery(query, values);
+
+    console.log("notificationData", notificationData);
+
     return {
       count: searchCount?.[0]?.count || 0,
       data: notificationData,
@@ -167,7 +217,6 @@ Profile.getNotificationById = async function (id, limit, offset) {
     return { error: "data not found" };
   }
 };
-
 Profile.getNotification = async function (id) {
   if (id) {
     const query = "select * from notifications where id = ?";
@@ -295,15 +344,18 @@ Profile.getGroupBasicDetails = async (uniqueLink) => {
   return groupsResult?.[0] || {};
 };
 
-Profile.getGroupPostById = async (id, limit, offset) => {
-  let query = `SELECT * FROM posts WHERE isdeleted = "N" AND posttoprofileid IS NOT NULL AND posttype NOT IN ("CHAT", "TA") AND posttoprofileid=${id} ORDER BY ID DESC `;
-
-  if (limit > 0 && offset >= 0) {
-    query += `LIMIT ${limit} OFFSET ${offset}`;
+Profile.getGroupBasicDetails = async (uniqueLink) => {
+  const query = `SELECT p.*,COUNT(rm.id) AS groupMembers FROM profile as p LEFT JOIN researchMembers as rm ON rm.researchProfileId = p.ID WHERE p.AccountType = 'G' AND p.IsDeleted = 'N' AND p.IsActivated = 'Y' AND p.UniqueLink = ? GROUP BY p.ID ORDER BY p.FirstName`;
+  const [groupsResult] = await executeQuery(query, [uniqueLink]);
+  if (groupsResult) {
+    const query1 =
+      "select p.ID as profileId, p.profilePicName,p.Username,p.FirstName,p.LastName,rm.researchProfileId from profile as p left join researchMembers as rm on rm.profileId = p.ID where rm.researchProfileId = ?";
+    const groupMembers = await executeQuery(query1, groupsResult?.ID);
+    groupsResult["groupMembersList"] = groupMembers || [];
+    console.log("groupsResult", groupsResult);
   }
-  const posts = await executeQuery(query);
 
-  return posts || [];
+  return groupsResult || {};
 };
 
 Profile.getGroupFileResourcesById = async (id) => {
@@ -313,6 +365,83 @@ Profile.getGroupFileResourcesById = async (id) => {
   );
 
   return posts || [];
+};
+
+Profile.groupsLists = async (
+  limit,
+  offset,
+  search,
+  pageType,
+  startDate,
+  endDate
+) => {
+  let whereCondition = `p.AccountType = "G" AND p.IsDeleted = "N" AND p.IsActivated = "Y" ${
+    search ? `AND p.FirstName LIKE '%${search}%'` : ""
+  }`;
+  if (startDate && endDate) {
+    whereCondition += `AND p.CreatedOn >= '${startDate}' AND p.CreatedOn <= '${endDate}'`;
+    console.log(whereCondition);
+  } else if (startDate) {
+    whereCondition += `AND p.CreatedOn >= '${startDate}'`;
+  } else if (endDate) {
+    whereCondition += `AND p.CreatedOn <= '${endDate}'`;
+  }
+  const searchCount = await executeQuery(
+    `SELECT count(p.ID) as count FROM profile as p WHERE ${whereCondition}`
+  );
+  const groupsResult = await executeQuery(
+    `SELECT p.*,pr.ID as createdBy,pr.ProfilePicName as createUserProfilePic, pr.Username as createUsername, pr.FirstName as createUserFirstName FROM profile as p left join profile as pr on pr.UserID = p.UserID and pr.AccountType in ('I','M') WHERE ${whereCondition} ORDER BY p.ID desc limit ? offset ?`,
+    [limit, offset]
+  );
+  return {
+    count: searchCount?.[0]?.count || 0,
+    data: groupsResult,
+  };
+};
+
+Profile.createGroup = async (data) => {
+  const groupsResult = await executeQuery("insert into profile set ?", [data]);
+  return groupsResult;
+};
+Profile.editGroups = async (id, data, membersIds) => {
+  const groupsResult = await executeQuery("update profile set ? where ID = ?", [
+    data,
+    id,
+  ]);
+  if (membersIds) {
+    for (const memberId of membersIds) {
+      console.log(memberId, id);
+
+      const members = await executeQuery(
+        `insert into researchMembers (profileId, researchProfileId) values (${memberId}, ${id})`
+      );
+    }
+  }
+
+  return groupsResult;
+};
+
+Profile.deleteGroup = async (id) => {
+  const query = `DELETE FROM profile WHERE ID = ${id}`;
+  const result = await executeQuery(query);
+  await executeQuery(
+    `DELETE FROM researchMembers WHERE researchProfileId = ${id}`
+  );
+  return result;
+};
+
+Profile.joinGroup = async (profileId, researchProfileId) => {
+  const query = `INSERT INTO researchMembers (profileId, researchProfileId) VALUES (?, ?)`;
+  const values = [profileId, researchProfileId];
+  const result = await executeQuery(query, values);
+  return result;
+};
+
+Profile.leaveGroup = async (profileId, researchProfileId) => {
+  const query = `DELETE FROM researchMembers WHERE profileId = ? AND researchProfileId = ?`;
+  const values = [profileId, researchProfileId];
+  const result = await executeQuery(query, values);
+  return result;
 };
 
 module.exports = Profile;

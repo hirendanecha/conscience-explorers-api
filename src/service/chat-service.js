@@ -291,19 +291,19 @@ const sendMessage = async function (params) {
               if (Object.hasOwnProperty.call(params?.tags, key)) {
                 const tag = params?.tags[key];
 
-                const notification = await createNotification({
-                  notificationToProfileId: tag?.id,
-                  groupId: data?.groupId,
-                  notificationByProfileId: data?.sentBy,
-                  actionType: "T",
-                  msg: "",
-                });
+                // const notification = await createNotification({
+                //   notificationToProfileId: tag?.id,
+                //   groupId: data?.groupId,
+                //   notificationByProfileId: data?.sentBy,
+                //   actionType: "T",
+                //   msg: "",
+                // });
                 const findUser = `select u.Email,p.FirstName,p.LastName,p.Username from users as u left join profile as p on p.UserID = u.Id where p.messageNotificationEmail = 'Y' and p.ID = ?`;
                 const values = [tag?.id];
                 const userData = await executeQuery(findUser, values);
                 if (userData?.length) {
                   const senderData = await getGroup({ groupId: data?.groupId });
-                  notifications.push(notification);
+                  // notifications.push(notification);
                   if (tag?.id) {
                     const userDetails = {
                       email: userData[0].Email,
@@ -823,35 +823,39 @@ const createGroups = async function (params) {
 
       let notifications = [];
       let groupList = {};
-      if (params.profileIds.length >= 0) {
-        for (const id of params.profileIds) {
-          const data = {
-            groupId: params?.groupId,
-            profileId: id,
-          };
-          if (params.isUpdate) {
+      if (params.isUpdate) {
+        if (params.profileIds.length >= 0) {
+          for (const id of params.profileIds) {
+            const data = {
+              groupId: params?.groupId,
+              profileId: id,
+            };
             const memberId = await addMembers(data);
+            console.log("ids==>", id);
+            const notification = await createNotification({
+              notificationByProfileId: params?.profileId,
+              notificationToProfileId: id,
+              actionType: "M",
+              groupId: params?.groupId,
+              msg: `${"added you in chat group"}`,
+            });
+            notifications.push(notification);
           }
           // if (memberId) {
-          console.log("ids==>", id);
-          const notification = await createNotification({
-            notificationByProfileId: params?.profileId,
-            notificationToProfileId: id,
-            actionType: "M",
-            groupId: params?.groupId,
-            msg: `${
-              params?.isUpdate
-                ? "added you in chat group"
-                : "changed group details"
-            }`,
-          });
 
-          notifications.push(notification);
           // }
+        } else {
+          groupList = await getGroup(params);
+          return { groupList };
         }
       } else {
-        groupList = await getGroup(params);
-        return { groupList };
+        const notification = await createNotification({
+          notificationByProfileId: params?.profileId,
+          actionType: "M",
+          groupId: params?.groupId,
+          msg: `${"changed group details"}`,
+        });
+        notifications.push(notification);
       }
       groupList = await getGroup(params);
       return { notifications, groupList, groupId: params?.groupId };
