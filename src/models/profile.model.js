@@ -23,11 +23,11 @@ var Profile = function (profile) {
   this.ProfilePicName = profile.ProfilePicName;
   this.IsActivated = profile.IsActive;
   this.CreatedOn = new Date();
-  this.callNotificationSound = profile?.callNotificationSound || 'Y';
-  this.messageNotificationSound = profile?.messageNotificationSound || 'Y';
-  this.tagNotificationSound = profile?.tagNotificationSound || 'Y';
-  this.messageNotificationEmail = profile?.messageNotificationEmail || 'Y';
-  this.postNotificationEmail = profile?.postNotificationEmail || 'Y';
+  this.callNotificationSound = profile?.callNotificationSound || "Y";
+  this.messageNotificationSound = profile?.messageNotificationSound || "Y";
+  this.tagNotificationSound = profile?.tagNotificationSound || "Y";
+  this.messageNotificationEmail = profile?.messageNotificationEmail || "Y";
+  this.postNotificationEmail = profile?.postNotificationEmail || "Y";
 };
 
 Profile.create = function (profileData, result) {
@@ -110,8 +110,8 @@ Profile.FindById = async function (profileId) {
             p.tagNotificationSound,
             p.messageNotificationEmail,
             p.postNotificationEmail
-        FROM users as u left join profile as p on p.UserID = u.Id AND p.AccountType in ('I','M') WHERE p.ID=?`;
-  const values = profileId;
+        FROM users as u left join profile as p on p.UserID = u.Id AND p.AccountType in ('I','M') WHERE p.ID=? or p.UserID = ?`;
+  const values = [profileId, profileId];
   let profile = await executeQuery(query, values);
   const query1 =
     "select c.channelId from channelAdmins as c left join profile as p on p.ID = c.profileId where c.profileId = p.ID and p.UserID = ?;";
