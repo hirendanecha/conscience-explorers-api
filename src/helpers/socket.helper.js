@@ -644,7 +644,7 @@ socket.config = (server) => {
           if (params.groupId) {
             io.to(`${params?.groupId}`).emit("new-message", data);
           } else {
-            io.to(`${params?.profileId}`).emit("new-message", data);
+            io.to(`${params?.roomId}`).emit("new-message", data);
           }
           if (data) {
             return cb(data);
@@ -665,7 +665,10 @@ socket.config = (server) => {
       try {
         if (params) {
           const data = await chatService.deleteMessage(params);
-          io.to(`${params?.profileId}`).emit("new-message", data);
+          io.to(`${params?.roomId || params?.groupId}`).emit(
+            "new-message",
+            data
+          );
           if (data) {
             return cb(data);
           }
