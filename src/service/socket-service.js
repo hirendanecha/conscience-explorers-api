@@ -191,23 +191,34 @@ const createNewPost = async function (data) {
             notificationByProfileId: postData?.profileid,
             actionType: "T",
           });
-          const findUser = `select u.Email,p.FirstName,p.LastName,p.Username from users as u left join profile as p on p.UserID = u.Id where p.postNotificationEmail = 'Y' and p.ID = ?`;
+          const findUser = `SELECT u.Email, p.FirstName, p.LastName, p.Username 
+                  FROM users AS u 
+                  LEFT JOIN profile AS p ON p.UserID = u.Id 
+                  WHERE p.postNotificationEmail = 'Y' 
+                  AND p.ID = ?`;
           const values = [tag?.id];
           const userData = await executeQuery(findUser, values);
+
           if (userData?.length) {
+            const findChannel = await executeQuery(
+              `select * from featured_channels where profileid = ?`,
+              [tag?.id]
+            );
             const findSenderUser = `select p.ID,p.Username,p.FirstName,p.LastName from profile as p where p.ID = ?`;
             const values1 = [postData?.profileid];
             const senderData = await executeQuery(findSenderUser, values1);
             notifications.push(notification);
+
             if (tag?.id) {
               const userDetails = {
-                email: userData[0].Email,
+                email: findChannel[0]?.notificationEmail || userData[0].Email,
                 profileId: senderData[0].ID,
                 userName: userData[0].Username,
                 senderUsername: senderData[0].Username,
                 firstName: userData[0].FirstName,
                 type: "post",
                 postId: notification?.postId || postData?.id,
+                isChannelTag: !!findChannel[0]?.notificationEmail,
               };
               await notificationMail(userDetails);
             }
@@ -294,7 +305,7 @@ const getApproveCommunity = async function (params) {
 };
 
 const likeFeedPost = async function (params) {
-  const { postId, communityPostId, profileId, likeCount, actionType } = params;
+  const { postId, profileId, likeCount, actionType } = params;
   if (postId) {
     const query = `update posts set likescount = ? where id =?`;
     const query1 = `INSERT INTO postlikedislike set ?`;
@@ -319,61 +330,22 @@ const likeFeedPost = async function (params) {
     const posts = await executeQuery(query3, values3);
     return { posts };
   }
-  // else if (communityPostId) {
-  //   const query = `update communityPosts set likescount = ? where Id =?`;
-  //   const query1 = `INSERT INTO postlikedislike set ?`;
-  //   const values = [likeCount, communityPostId];
-  //   const data = {
-  //     communityPostId: communityPostId,
-  //     ProfileID: profileId,
-  //     ActionType: actionType,
-  //   };
-  //   const values1 = [data];
-  //   const post = await executeQuery(query, values);
-  //   const likeData = await executeQuery(query1, values1);
-  //   // const postData = await getPost({ page: 1, size: 15, profileId: profileId });
-  //   // return postData;
-  //   const query3 = `SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName from posts as p left join profile as pr on p.profileid = pr.ID where p.id=?`;
-  //   const values3 = [postId];
-  //   const posts = await executeQuery(query3, values3);
-  //   return { posts };
-  // }
 };
 
 const disLikeFeedPost = async function (params) {
-  const { postId, communityPostId, profileId, likeCount } = params;
+  const { postId, profileId, likeCount } = params;
   if (postId) {
     const query = `update posts set likescount = ? where id =?`;
     const query1 = `delete from postlikedislike where PostID = ? AND ProfileID = ?`;
     const values = [likeCount, postId];
     const values1 = [postId, profileId];
-    const post = await executeQuery(query, values);
-    const likeData = await executeQuery(query1, values1);
+    await executeQuery(query, values);
+    await executeQuery(query1, values1);
     const query3 = `SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName from posts as p left join profile as pr on p.profileid = pr.ID where p.id=?`;
     const values3 = [postId];
     const posts = await executeQuery(query3, values3);
     return { posts };
-    // const postData = await getPost({ profileId: profileId, page: 1, size: 15 });
-    // return postData;
   }
-  // else if (communityPostId) {
-  //   const query = `update communityPosts set likescount = ? where id =?`;
-  //   const query1 = `delete from postlikedislike where communityPostId = ? AND ProfileID = ?`;
-  //   const values = [likeCount, communityPostId];
-  //   const values1 = [communityPostId, profileId];
-  //   const post = await executeQuery(query, values);
-  //   const likeData = await executeQuery(query1, values1);
-  //   // const postData = await getPost({
-  //   //   profileId: profileId,
-  //   //   page: 1,
-  //   //   size: 15,
-  //   // });
-  //   // return postData;
-  //   const query3 = `SELECT p.*, pr.ProfilePicName, pr.Username, pr.FirstName from posts as p left join profile as pr on p.profileid = pr.ID where p.id=?`;
-  //   const values3 = [postId];
-  //   const posts = await executeQuery(query3, values3);
-  //   return { posts };
-  // }
 };
 
 const createNotification = async function (params) {
@@ -389,6 +361,9 @@ const createNotification = async function (params) {
     "SELECT ID,ProfilePicName, Username, FirstName,LastName from profile where ID = ?";
   const values = [notificationByProfileId];
   const userData = await executeQuery(query, values);
+  if (!userData[0]) {
+    return;
+  }
   let desc = "";
   if (channelId) {
     desc = `${
@@ -482,17 +457,12 @@ const createComments = async function (params) {
     const query1 = "select profileid from posts where id= ?";
     const value = [data.postId];
     const posts = await executeQuery(query1, value);
-    notification = await createNotification({
-      notificationToProfileId: posts[0].profileid,
-      postId: data.postId,
-      notificationByProfileId: data?.profileId,
-      actionType: "C",
-      commentId: params?.id || commentData.insertId,
-    });
+
     if (params?.tags?.length > 0) {
       for (const key in params?.tags) {
         if (Object.hasOwnProperty.call(params?.tags, key)) {
           const tag = params?.tags[key];
+          console.log("tag user==>", tag);
 
           const notification = await createNotification({
             notificationToProfileId: tag?.id,
@@ -506,25 +476,39 @@ const createComments = async function (params) {
           const values = [tag?.id];
           const userData = await executeQuery(findUser, values);
           if (userData?.length) {
+            const findChannel = await executeQuery(
+              `select * from featured_channels where profileid = ?`,
+              [tag?.id]
+            );
             const findSenderUser = `select p.ID,p.Username,p.FirstName,p.LastName from profile as p where p.ID = ?`;
             const values1 = [data?.profileId];
             const senderData = await executeQuery(findSenderUser, values1);
             notifications.push(notification);
+            
             if (tag?.id) {
               const userDetails = {
-                email: userData[0].Email,
+                email: findChannel[0]?.notificationEmail || userData[0].Email,
                 profileId: senderData[0].ID,
                 userName: userData[0].Username,
                 firstName: userData[0].FirstName,
                 senderUsername: senderData[0].Username,
                 type: "comment",
                 postId: notification?.postId || postData?.id,
+                isChannelTag: !!findChannel[0]?.notificationEmail,
               };
               await notificationMail(userDetails);
             }
           }
         }
       }
+    } else {
+      notification = await createNotification({
+        notificationToProfileId: posts[0].profileid,
+        postId: data.postId,
+        notificationByProfileId: data?.profileId,
+        actionType: "C",
+        commentId: params?.id || commentData.insertId,
+      });
     }
   }
   notifications.push(notification);

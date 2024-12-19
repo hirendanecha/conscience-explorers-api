@@ -120,7 +120,6 @@ Profile.FindById = async function (profileId) {
   if (channelId?.length) {
     profile[0]["channelId"] = channelId[0]?.channelId || null;
   }
-  console.log("test", profile);
   return profile;
 };
 
@@ -142,7 +141,21 @@ Profile.update = function (profileId, profileData, result) {
 
 Profile.getUsersByUsername = async function (searchText) {
   if (searchText) {
-    const query = `select p.ID as Id, p.Username,p.ProfilePicName,p.UserID from profile as p left join users as u on u.Id = p.UserID WHERE u.IsAdmin ='N' AND u.IsSuspended ='N' AND u.IsActive = 'Y' AND p.Username LIKE ? AND p.AccountType in ('I','M') order by p.CreatedOn desc limit 50`;
+    const query = `SELECT 
+  p.ID as Id, 
+  p.Username, 
+  p.ProfilePicName, 
+  p.UserID 
+FROM profile AS p 
+LEFT JOIN users AS u ON u.Id = p.UserID 
+WHERE 
+  u.IsAdmin = 'N' 
+  AND u.IsSuspended = 'N' 
+  AND u.IsActive = 'Y' 
+  AND REPLACE(p.Username, ' ', '') LIKE ? 
+  AND p.AccountType IN ('I', 'M','C') 
+ORDER BY p.CreatedOn DESC 
+LIMIT 50;`;
     const values = [`${searchText}%`];
     const searchData = await executeQuery(query, values);
     return searchData;
@@ -153,12 +166,15 @@ Profile.getUsersByUsername = async function (searchText) {
 
 // Profile.getNotificationById = async function (id, limit, offset) {
 //   if (id) {
-//     const query = `select n.*,p.Username,p.FirstName,p.ProfilePicName from notifications as n left join profile as p on p.ID = n.notificationByProfileId where n.notificationToProfileId = ? order by n.createDate desc limit ${limit} offset ${offset}`;
-//     const values = [id];
+//     const query = `select n.*,p.Username,p.FirstName,p.ProfilePicName from notifications as n left join profile as p on p.ID = n.notificationByProfileId left join groupMembers as g on g.groupId = n.groupId and g.profileId != n.notificationByProfileId where g.profileId = ? OR n.notificationToProfileId =? order by n.createDate desc limit ${limit} offset ${offset}`;
+//     const values = [id, id];
 //     const searchCount = await executeQuery(
 //       `SELECT count(id) as count FROM notifications as n WHERE n.notificationToProfileId = ${id}`
 //     );
 //     const notificationData = await executeQuery(query, values);
+//     console.log("notificationData", notificationData);
+    
+//     // return notificationData;
 //     return {
 //       count: searchCount?.[0]?.count || 0,
 //       data: notificationData,
@@ -171,25 +187,26 @@ Profile.getUsersByUsername = async function (searchText) {
 Profile.getNotificationById = async function (id, limit, offset) {
   if (id) {
     const query = `
-      SELECT n.*, 
-             p.Username, 
-             p.FirstName, 
-             p.ProfilePicName,
-             g.groupName,
-             g.profileImage
-      FROM notifications AS n
-      LEFT JOIN profile AS p 
-        ON p.ID = n.notificationByProfileId
-      LEFT JOIN chatGroups AS g 
-        ON g.id = n.groupId
-      LEFT JOIN groupMembers AS gm 
-        ON gm.groupId = n.groupId 
-           AND gm.profileId = ?
-      WHERE gm.profileId != n.notificationByProfileId AND gm.profileId = ? 
-         OR n.notificationToProfileId = ?
-      GROUP BY n.id
-      ORDER BY n.createDate DESC
-      LIMIT ? OFFSET ?`;
+      SELECT 
+    n.*, 
+    p.Username, 
+    p.FirstName, 
+    p.ProfilePicName,
+    g.groupName,
+    g.profileImage
+FROM notifications AS n
+LEFT JOIN profile AS p 
+    ON p.ID = n.notificationByProfileId
+LEFT JOIN chatGroups AS g 
+    ON g.id = n.groupId
+LEFT JOIN groupMembers AS gm 
+    ON gm.groupId = n.groupId AND gm.profileId = ?
+WHERE 
+    (gm.profileId = ? AND gm.profileId != n.notificationByProfileId)
+    OR n.notificationToProfileId = ?
+ORDER BY n.createDate DESC
+LIMIT ? OFFSET ?;
+`;
 
     const values = [id, id, id, limit, offset];
 
@@ -200,7 +217,7 @@ Profile.getNotificationById = async function (id, limit, offset) {
       LEFT JOIN groupMembers AS g 
         ON g.groupId = n.groupId 
            AND g.profileId = ?
-      WHERE g.profileId = ? 
+      WHERE (g.profileId = ? AND g.profileId != n.notificationByProfileId)
          OR n.notificationToProfileId = ?`;
     const searchCountValues = [id, id, id];
 
@@ -217,6 +234,9 @@ Profile.getNotificationById = async function (id, limit, offset) {
     return { error: "data not found" };
   }
 };
+
+
+
 Profile.getNotification = async function (id) {
   if (id) {
     const query = "select * from notifications where id = ?";
@@ -327,6 +347,27 @@ Profile.groupsAndPosts = async () => {
   return groupedPosts;
 };
 
+Profile.createGroup = async (data) => {
+  const groupsResult = await executeQuery("insert into profile set ?", [data]);
+  return groupsResult;
+};
+Profile.editGroups = async (id, data, membersIds) => {
+  const groupsResult = await executeQuery("update profile set ? where ID = ?", [
+    data,
+    id,
+  ]);
+  if (membersIds) {
+    for (const memberId of membersIds) {
+      console.log(memberId, id);
+
+      const members = await executeQuery(
+        `insert into researchMembers (profileId, researchProfileId) values (${memberId}, ${id})`
+      );
+    }
+  }
+
+  return groupsResult;
+};
 Profile.getGroups = async () => {
   const groupsResult = await executeQuery(
     'SELECT ID, UniqueLink, FirstName FROM profile WHERE AccountType = "G" AND IsDeleted = "N" AND IsActivated = "Y" ORDER BY FirstName'
@@ -428,6 +469,26 @@ Profile.deleteGroup = async (id) => {
     `DELETE FROM researchMembers WHERE researchProfileId = ${id}`
   );
   return result;
+};
+
+Profile.getGroupPostById = async (id, limit, offset) => {
+  let query = `SELECT * FROM posts WHERE isdeleted = "N" AND posttoprofileid IS NOT NULL AND posttype NOT IN ("CHAT", "TA") AND posttoprofileid=${id} ORDER BY ID DESC `;
+
+  if (limit > 0 && offset >= 0) {
+    query += `LIMIT ${limit} OFFSET ${offset}`;
+  }
+  const posts = await executeQuery(query);
+
+  return posts || [];
+};
+
+Profile.getGroupFileResourcesById = async (id) => {
+  const posts = await executeQuery(
+    "SELECT p.ID AS PostID, p.PostDescription, p.PostCreationDate AS UploadedOn, ph.PhotoName as FileName FROM posts AS p LEFT JOIN photos as ph on p.ID = ph.PostID WHERE isdeleted = 'N' AND  p.posttype = 'F' AND (p.ProfileID = ? OR p.PostToProfileID = ?)",
+    [id, id]
+  );
+
+  return posts || [];
 };
 
 Profile.joinGroup = async (profileId, researchProfileId) => {
